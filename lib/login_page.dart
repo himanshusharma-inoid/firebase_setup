@@ -46,7 +46,7 @@ class _LoginPageState extends State<LoginPage> {
                 AppUtils.buildPhoneTabWidget(context, "Phone", () {
                   step = 2;
                   setState(() {});
-                }, step
+                 }, step
                 ),
               ],
             ),
