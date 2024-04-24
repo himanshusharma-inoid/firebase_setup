@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "834586016035",
+    "project_id": "flutterpushnotifications-c3d4d",
+    "storage_bucket": "flutterpushnotifications-c3d4d.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:834586016035:android:e047aa08089c23c6387496",
+        "android_client_info": {
+          "package_name": "com.firebasedemoapp.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC4ldrPwT8tXa_VAdA0Vtkn_uovng9Fpco"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
