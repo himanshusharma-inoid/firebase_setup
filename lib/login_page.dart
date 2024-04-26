@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:firebase_setup/utils.dart';
@@ -9,6 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+
+import 'firebase_api.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -24,81 +27,97 @@ class _LoginPageState extends State<LoginPage> {
   int step = 1;
   CroppedFile? croppedImageFile;
   XFile? resultFile;
+  String countryCode = "+33";
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppUtils.customAppbar(text: "Login"),
-      body: Padding(
-        padding: const EdgeInsets.only(top: 60.0, right: 30, left: 30),
-        child: Column(
-          children: [
+      body: SingleChildScrollView(
+        child: ClipPath(
+          clipper: MyClipper(),
+          child: Container(
+            //height: size.height * 0.8,
+            color: Colors.tealAccent,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 60.0, right: 30, left: 30, bottom: 60),
+              child: Column(
+                children: [
 
-            Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                AppUtils.buildEmailTabWidget(context, "email", () {
-                  step = 1;
-                  setState(() {});
-                }, step
-                ),
-                const SizedBox(width: 10.0,),
-                AppUtils.buildPhoneTabWidget(context, "Phone", () {
-                  step = 2;
-                  setState(() {});
-                 }, step
-                ),
-              ],
-            ),
-            const SizedBox(height: 30.0),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      AppUtils.buildEmailTabWidget(context, "email", () {
+                        step = 1;
+                        setState(() {});
+                      }, step
+                      ),
+                      const SizedBox(width: 10.0,),
+                      AppUtils.buildPhoneTabWidget(context, "Phone", () {
+                        step = 2;
+                        setState(() {});
+                       }, step
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 30.0),
 
-            InkWell(
-              onTap: openGallery,
-              borderRadius: BorderRadius.circular(50),
-              child: (croppedImageFile != null) ? Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(50),
-                  color: Colors.black12
-                ),
-                child: ClipRRect(
+                  if(step == 2)
+                  ...[
+                  InkWell(
+                    onTap: openGallery,
                     borderRadius: BorderRadius.circular(50),
-                    child: Image.file(File(croppedImageFile!.path), fit: BoxFit.cover, height: 90, width: 90)),
-              ) : null,
-            ),
-            const SizedBox(height: 15.0),
+                    child:  Container(
+                      height: 90, width: 90,
+                      decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(50),
+                          color: Colors.black12
+                      ),
+                      child: (croppedImageFile != null) ? ClipRRect(
+                          borderRadius: BorderRadius.circular(50),
+                          child: Image.file(File(croppedImageFile!.path), fit: BoxFit.cover)) : const SizedBox(),
+                    ),
+                  ),
+                  const SizedBox(height: 15.0),
+                  ],
 
-            if(step == 1)
-            ...[
-            AppUtils.buildTextField(controller: emailController, hint: "enter email"),
-            const SizedBox(height: 15.0),
-            AppUtils.buildTextField(controller: passwordController, hint: "enter password"),
-            ],
-            if(step == 2)
-            AppUtils.buildTextField(controller: phoneController, hint: "enter phone number"),
-            const SizedBox(height: 30.0),
-            AppUtils.buildElevatedButton(() {
-               firebaseLogin();
-            }, "Login"),
-            const SizedBox(height: 15.0),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AppUtils.commonText("Don't have an account?"),
-                const SizedBox(width: 10),
-                InkWell(
-                    onTap: (){
-                      Navigator.pushNamed(context, "/signup_page");
-                    },
-                    child: AppUtils.commonText("SignUp"))
-              ],
+                  if(step == 1)
+                  ...[
+                  AppUtils.buildTextField(controller: emailController, hint: "enter email"),
+                  const SizedBox(height: 15.0),
+                  AppUtils.buildTextField(controller: passwordController, hint: "enter password"),
+                  ],
+                  if(step == 2)
+                  AppUtils.buildPhoneNumberTextFormField(controller: phoneController, hint: "enter phone number", callback: (String? value){
+                    if(value != null) countryCode = value;
+                  }),
+                  const SizedBox(height: 30.0),
+                  AppUtils.buildElevatedButton(() {
+                     firebaseLogin();
+                  }, "Login"),
+                  const SizedBox(height: 15.0),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      AppUtils.commonText("Don't have an account?"),
+                      const SizedBox(width: 10),
+                      InkWell(
+                          onTap: (){
+                            Navigator.pushNamed(context, "/signup_page");
+                          },
+                          child: AppUtils.commonText("SignUp"))
+                    ],
+                  ),
+                  const SizedBox(height: 15.0),
+                  InkWell(
+                      onTap: () {
+                        Navigator.pushNamed(context, "/forgot_password_page");
+                      },
+                      child: AppUtils.commonText("Forgot Password?"))
+                ],
+              ),
             ),
-            const SizedBox(height: 15.0),
-            InkWell(
-                onTap: (){
-                  Navigator.pushNamed(context, "/forgot_password_page");
-                },
-                child: AppUtils.commonText("Forgot Password?"))
-          ],
+          ),
         ),
       ),
     );
@@ -156,39 +175,64 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void firebaseLogin() {
-    try {
-      if(step == 1) {
-        FirebaseAuth.instance.signInWithEmailAndPassword(email: emailController.text, password: passwordController.text)
-            .then((value) {
-
-
-
-               FirebaseFirestore.instance.collection("users").doc(emailController.text).set({
-                 "email": emailController.text
-               });
-
-               Navigator.pushNamedAndRemoveUntil(
-                    context, "/home_page", (route) => false);
-               });
-            }
-      else{
-        FirebaseAuth.instance.verifyPhoneNumber(
-            phoneNumber: phoneController.text,
-            verificationCompleted: (PhoneAuthCredential credential){
-              debugPrint("verification completed");
-            },
-            verificationFailed: (FirebaseAuthException e){
-
-            },
-            codeSent: (verificationId, forceResendingToken){
-              Navigator.pushNamed(context, "/otp_page", arguments: {"verification_id": verificationId});
-            },
-            codeAutoRetrievalTimeout: (codeAutoRetrievalTimeout){
-
-            });
+      if (step == 1) {
+        try {
+          FirebaseApi().createUserWithEmailAndPassword(email: emailController.text, password: passwordController.text).then((value) => Navigator.pushNamedAndRemoveUntil(context, "/home_page", (route) => false));
+          // FirebaseAuth.instance.signInWithEmailAndPassword(email: emailController.text, password: passwordController.text)
+          //     .then((value) {
+          //   Navigator.pushNamedAndRemoveUntil(context, "/home_page", (route) => false);
+          // });
+        } on FirebaseAuthException catch (e) {
+          debugPrint("error is: $e");
+        }
       }
-    }on FirebaseAuth catch(e){
-      debugPrint("error is : $e");
+      else {
+       if(croppedImageFile!=null) {
+         try {
+           FirebaseAuth.instance.verifyPhoneNumber(
+               phoneNumber: countryCode + phoneController.text,
+               verificationCompleted: (PhoneAuthCredential credential) {
+                 debugPrint("verification completed");
+               },
+               verificationFailed: (FirebaseAuthException e) {
+
+               },
+               codeSent: (verificationId, forceResendingToken) {
+                 debugPrint("code sent");
+                 Navigator.pushNamed(context, "/otp_page",
+                     arguments: {
+                       "verification_id": verificationId,
+                       "image_file": croppedImageFile?.path,
+                       "phone_number": countryCode + phoneController.text
+                     });
+               },
+               codeAutoRetrievalTimeout: (codeAutoRetrievalTimeout) {
+
+               });
+         } on FirebaseAuthException catch (e) {
+           debugPrint("error is : $e");
+         }
+       }else{
+         Fluttertoast.showToast(msg: "Please add photo");
+       }
     }
+  }
+
+}
+
+class MyClipper extends CustomClipper<Path>{
+  @override
+  getClip(Size size) {
+    Path path = Path();
+    path.lineTo(0, size.height - 60);
+    path.quadraticBezierTo(size.width/2, size.height, size.width, size.height - 60);
+    path.lineTo(size.width, 0);
+    path.close();
+   return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper oldClipper) {
+    return false;
   }
 }

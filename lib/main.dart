@@ -7,6 +7,8 @@ import 'package:firebase_setup/otp_page.dart';
 import 'package:firebase_setup/sign_up_page.dart';
 import 'package:firebase_setup/splash_screen_page.dart';
 import 'package:flutter/material.dart';
+
+import 'chat_page.dart';
 Future<void> main() async{
   await mainCommon();
 }
@@ -21,6 +23,7 @@ Future<void> mainCommon() async {
         appId: "1:834586016035:android:e047aa08089c23c6387496",
         messagingSenderId: "834586016035",
         projectId: "flutterpushnotifications-c3d4d",
+        storageBucket: 'flutterpushnotifications-c3d4d.appspot.com'
       ),
     );
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -61,6 +64,7 @@ class MyApp extends StatelessWidget {
         "/home_page":(context) => const MyHomePage(title: 'dashboard'),
         "/forgot_password_page":(context) => const ForgotPasswordPage(),
         "/otp_page":(context) => const OtpScreen(),
+        "/chat_page":(context) => const ChatScreen(),
       },
     );
   }

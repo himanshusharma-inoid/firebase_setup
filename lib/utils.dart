@@ -1,3 +1,4 @@
+import 'package:country_code_picker/country_code_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -7,7 +8,7 @@ class AppUtils {
   {
     return AppBar(
       title: (text!= null) ? Text(text) : null,
-      backgroundColor: Colors.deepPurple,titleTextStyle:const TextStyle(color: Colors.white,fontSize: 30),);
+      backgroundColor: Colors.tealAccent,titleTextStyle:const TextStyle(color: Colors.deepPurple,fontSize: 30),);
 
   }
  static TextField  buildTextField({required TextEditingController controller, String? hint}){
@@ -21,6 +22,35 @@ class AppUtils {
        )
    );
  }
+
+  static TextFormField  buildPhoneNumberTextFormField({required TextEditingController controller, String? hint, Function(String?)? callback}){
+    return TextFormField(
+        controller: controller,
+        decoration: InputDecoration(
+           prefixIcon: CountryCodePicker(
+            onChanged: (code){
+              debugPrint("on changed ${code.name} ${code.dialCode}");
+              if(callback != null)  callback(code.dialCode);
+            },
+            // Initial selection and favorite can be one of code ('IT') OR dial_code('+39')
+            initialSelection: 'FR',
+            // favorite: const ['+39', 'FR'],
+            // countryFilter: const ['IT', 'FR'],
+             showFlagMain: true,
+             showFlag: true,
+             showDropDownButton: false,
+             flagWidth: 20,
+            // comparator: (a, b) => b.name.compareTo(a.name),
+            //Get the country information relevant to the initial selection
+            onInit: (code) => debugPrint("on init ${code?.name} ${code?.dialCode}"),
+          ),
+            hintText: (hint!=null) ? hint : null,
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16.0)
+            )
+        )
+    );
+  }
 
  static buildElevatedButton(VoidCallback voidCallback,String text){
     return SizedBox(height: 40,width: 200,child: ElevatedButton(onPressed: () =>voidCallback(),
@@ -63,7 +93,7 @@ static Widget buildPhoneTabWidget(BuildContext context, String text, VoidCallbac
    onTap: () => voidCallback(),
    child: Column(
      children: [
-       Text(text, style: TextStyle(color: (step == 2) ? Colors.deepPurple : Colors.grey, fontSize: 24, fontWeight: FontWeight.w400),),
+       Text(text, style: TextStyle(color: (step == 2) ? Colors.deepPurple : Colors.grey, fontSize: 24, fontWeight: FontWeight.w400)),
        Container(
            width: MediaQuery.of(context).size.width * 0.2,
            height: 3,

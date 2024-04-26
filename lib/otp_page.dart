@@ -1,5 +1,10 @@
+import 'dart:io';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_setup/firebase_api.dart';
 import 'package:firebase_setup/utils.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:pinput/pinput.dart';
 
@@ -28,7 +33,7 @@ class _OtpScreenState extends State<OtpScreen> {
   static const focusedBorderColor = Color.fromRGBO(23, 171, 144, 1);
   static const fillColor = Color.fromRGBO(243, 246, 249, 0);
   static const borderColor = Color.fromRGBO(23, 171, 144, 0.4);
-  late final arguments;
+  var arguments = {};
 
 
   @override
@@ -37,52 +42,56 @@ class _OtpScreenState extends State<OtpScreen> {
     debugPrint("argument data is: $arguments");
     return Scaffold(
       appBar: AppUtils.customAppbar(text: "Otp"),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      body: ClipPath(
+        clipper: MyPolygonClipper(),
         child: Form(
           key: formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Pinput(
-                length: 6,
-                keyboardType: TextInputType.number,
-                controller: pinController,
-                defaultPinTheme: defaultPinTheme,
-                onCompleted: (pin) {
-                  debugPrint('onCompleted: $pin');
-                },
-                onChanged: (value) {
-                  debugPrint('onChanged: $value');
-                },
-                focusedPinTheme: defaultPinTheme.copyWith(
-                  decoration: defaultPinTheme.decoration!.copyWith(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: focusedBorderColor),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 60.0),
+            color: Colors.tealAccent,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Pinput(
+                  length: 6,
+                  keyboardType: TextInputType.number,
+                  controller: pinController,
+                  defaultPinTheme: defaultPinTheme,
+                  onCompleted: (pin) {
+                    debugPrint('onCompleted: $pin');
+                  },
+                  onChanged: (value) {
+                    debugPrint('onChanged: $value');
+                  },
+                  focusedPinTheme: defaultPinTheme.copyWith(
+                    decoration: defaultPinTheme.decoration!.copyWith(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: focusedBorderColor),
+                    ),
                   ),
-                ),
-                submittedPinTheme: defaultPinTheme.copyWith(
-                  decoration: defaultPinTheme.decoration!.copyWith(
-                    color: fillColor,
-                    borderRadius: BorderRadius.circular(19),
-                    border: Border.all(color: focusedBorderColor),
+                  submittedPinTheme: defaultPinTheme.copyWith(
+                    decoration: defaultPinTheme.decoration!.copyWith(
+                      color: fillColor,
+                      borderRadius: BorderRadius.circular(19),
+                      border: Border.all(color: focusedBorderColor),
+                    ),
                   ),
+                  errorPinTheme: defaultPinTheme.copyBorderWith(
+                    border: Border.all(color: Colors.redAccent),
+                  ),
+                  pinputAutovalidateMode: PinputAutovalidateMode.onSubmit,
+                  textInputAction: TextInputAction.next,
+                  showCursor: true,
+                  validator: (s) {
+                    debugPrint('validating code: $s');
+                  },
                 ),
-                errorPinTheme: defaultPinTheme.copyBorderWith(
-                  border: Border.all(color: Colors.redAccent),
-                ),
-                pinputAutovalidateMode: PinputAutovalidateMode.onSubmit,
-                textInputAction: TextInputAction.next,
-                showCursor: true,
-                validator: (s) {
-                  debugPrint('validating code: $s');
-                },
-              ),
-              const SizedBox(height: 15.0),
-              AppUtils.buildElevatedButton(() {
-                validateOtp();
-              }, "Submit"),
-            ],
+                const SizedBox(height: 15.0),
+                AppUtils.buildElevatedButton(() {
+                  validateOtp();
+                }, "Submit"),
+              ],
+            ),
           ),
         ),
       ),
@@ -97,13 +106,60 @@ class _OtpScreenState extends State<OtpScreen> {
       PhoneAuthCredential credential = PhoneAuthProvider.credential(verificationId: arguments["verification_id"], smsCode: pinController.text);
 
       // Sign the user in (or link) with the credential
-      await FirebaseAuth.instance.signInWithCredential(credential);
-      Navigator.pushNamedAndRemoveUntil(
-          context, "/home_page", (route) => false);
+      FirebaseApi().signInWithCredential(credential: credential).then((value) => uploadData());
+      // FirebaseAuth.instance.signInWithCredential(credential).then((value) {
+      //   uploadData();
+      // });
+
     }on FirebaseAuth catch(e){
       debugPrint("error: ${e.toString()}");
     }
 
 
+  }
+
+  Future<void> uploadData() async {
+    ///Create a Reference
+    final storageRef = FirebaseStorage.instance.ref("images");
+    final ref = storageRef.child(arguments["phone_number"]);
+
+    /// upload file
+    UploadTask uploadTask = ref.putFile(File(arguments["image_file"]));
+    TaskSnapshot taskSnapshot = await uploadTask;
+    String url = await taskSnapshot.ref.getDownloadURL();
+
+    /// send data into firestore database
+    FirebaseApi().addUserData(email: arguments["phone_number"], url: url);
+    // FirebaseFirestore.instance.collection("users").doc(arguments["phone_number"]).set({
+    //   "email": arguments["phone_number"],
+    //   "image_url": url
+    // });
+
+    Navigator.pushNamedAndRemoveUntil(context, "/home_page", (route) => false);
+
+  }
+
+}
+
+class MyPolygonClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    var points = [
+      Offset(size.width / 2, 0), // point p1
+      Offset(0, size.height / 2), // point p2
+      Offset(size.width / 2, size.height), // point p3
+      Offset(size.width, size.height / 2) // point p4
+    ];
+
+    Path path = Path()
+      ..addPolygon(points, false)
+      ..close();
+
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) {
+    return false;
   }
 }
