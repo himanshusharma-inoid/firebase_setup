@@ -41,7 +41,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
   void firebaseForgotPassword() {
     try {
-      FirebaseApi().sendPasswordResetEmail(email: emailController.text).then((value) =>
+      FirebaseApi.sendPasswordResetEmail(email: emailController.text).then((value) =>
           AppUtils.customAlertBox(context, text: "password reset send to email")
       );
       // FirebaseAuth.instance.sendPasswordResetEmail(email: emailController.text).then((value) =>

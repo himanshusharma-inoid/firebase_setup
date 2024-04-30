@@ -7,6 +7,7 @@ import 'package:firebase_setup/utils.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:pinput/pinput.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class OtpScreen extends StatefulWidget {
   const OtpScreen({super.key});
@@ -106,7 +107,7 @@ class _OtpScreenState extends State<OtpScreen> {
       PhoneAuthCredential credential = PhoneAuthProvider.credential(verificationId: arguments["verification_id"], smsCode: pinController.text);
 
       // Sign the user in (or link) with the credential
-      FirebaseApi().signInWithCredential(credential: credential).then((value) => uploadData());
+      FirebaseApi.signInWithCredential(credential: credential).then((credential) => uploadData(credential));
       // FirebaseAuth.instance.signInWithCredential(credential).then((value) {
       //   uploadData();
       // });
@@ -118,7 +119,7 @@ class _OtpScreenState extends State<OtpScreen> {
 
   }
 
-  Future<void> uploadData() async {
+  Future<void> uploadData(UserCredential credential) async {
     ///Create a Reference
     final storageRef = FirebaseStorage.instance.ref("images");
     final ref = storageRef.child(arguments["phone_number"]);
@@ -129,7 +130,10 @@ class _OtpScreenState extends State<OtpScreen> {
     String url = await taskSnapshot.ref.getDownloadURL();
 
     /// send data into firestore database
-    FirebaseApi().addUserData(email: arguments["phone_number"], url: url);
+    String? uid = credential.user?.uid;
+    SharedPreferences preferences = await SharedPreferences.getInstance();
+    preferences.setString("USER_ID", uid.toString());
+    FirebaseApi.addUserData(uid: uid.toString(), email: arguments["phone_number"], url: url);
     // FirebaseFirestore.instance.collection("users").doc(arguments["phone_number"]).set({
     //   "email": arguments["phone_number"],
     //   "image_url": url

@@ -12,6 +12,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -121,7 +122,7 @@ class _SignUpPageState extends State<SignUpPage> {
     }
   }
 
-  Future<void> uploadData() async {
+  Future<void> uploadData(UserCredential credential) async {
     ///Create a Reference
     final storageRef = FirebaseStorage.instance.ref("images");
     final Ref = storageRef.child(emailController.text);
@@ -132,7 +133,10 @@ class _SignUpPageState extends State<SignUpPage> {
     String url = await taskSnapshot.ref.getDownloadURL();
 
     /// send data into firestore database
-    FirebaseApi().addUserData(email: emailController.text, url: url);
+    String? uid = credential.user?.uid;
+    SharedPreferences preferences = await SharedPreferences.getInstance();
+    preferences.setString("USER_ID", uid.toString());
+    FirebaseApi.addUserData(uid: uid.toString(), email: emailController.text, url: url);
     // FirebaseFirestore.instance.collection("users").doc(emailController.text).set({
     //   "email": emailController.text,
     //   "image_url": url
@@ -144,7 +148,7 @@ class _SignUpPageState extends State<SignUpPage> {
 
   Future<void> firebaseSignUp() async {
     try {
-      FirebaseApi().createUserWithEmailAndPassword(email: emailController.text, password: passwordController.text).then((value) => uploadData());
+      FirebaseApi.createUserWithEmailAndPassword(email: emailController.text, password: passwordController.text).then((credentials) => uploadData(credentials));
       // UserCredential? userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: emailController.text, password: passwordController.text);
       // if(userCredential != null){
       //   uploadData();

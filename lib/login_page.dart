@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'firebase_api.dart';
 
@@ -174,10 +175,15 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  void firebaseLogin() {
+  Future<void> firebaseLogin() async {
       if (step == 1) {
         try {
-          FirebaseApi().createUserWithEmailAndPassword(email: emailController.text, password: passwordController.text).then((value) => Navigator.pushNamedAndRemoveUntil(context, "/home_page", (route) => false));
+          FirebaseApi.signInWithEmailAndPassword(email: emailController.text, password: passwordController.text).then((credential) async {
+            String? uid = credential.user?.uid;
+            SharedPreferences preferences = await SharedPreferences.getInstance();
+            preferences.setString("USER_ID", uid.toString());
+            Navigator.pushNamedAndRemoveUntil(context, "/home_page", (route) => false);
+          });
           // FirebaseAuth.instance.signInWithEmailAndPassword(email: emailController.text, password: passwordController.text)
           //     .then((value) {
           //   Navigator.pushNamedAndRemoveUntil(context, "/home_page", (route) => false);
