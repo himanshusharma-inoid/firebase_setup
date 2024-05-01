@@ -102,7 +102,7 @@ class _OtpScreenState extends State<OtpScreen> {
   Future<void> validateOtp() async {
     focusNode.unfocus();
     formKey.currentState!.validate();
-
+    AppUtils.loadingDialog(context);
     try {
       PhoneAuthCredential credential = PhoneAuthProvider.credential(verificationId: arguments["verification_id"], smsCode: pinController.text);
 
@@ -113,6 +113,7 @@ class _OtpScreenState extends State<OtpScreen> {
       // });
 
     }on FirebaseAuth catch(e){
+      Navigator.pop(context);
       debugPrint("error: ${e.toString()}");
     }
 
@@ -131,16 +132,17 @@ class _OtpScreenState extends State<OtpScreen> {
 
     /// send data into firestore database
     String? uid = credential.user?.uid;
+    // String? userName = credential.user?.displayName;
     SharedPreferences preferences = await SharedPreferences.getInstance();
     preferences.setString("USER_ID", uid.toString());
-    FirebaseApi.addUserData(uid: uid.toString(), email: arguments["phone_number"], url: url);
+    // preferences.setString("USER_Name", userName.toString());
+    FirebaseApi.addUserData(uid: uid.toString(), email: arguments["phone_number"], url: url, userName: arguments["user_name"]);
     // FirebaseFirestore.instance.collection("users").doc(arguments["phone_number"]).set({
     //   "email": arguments["phone_number"],
     //   "image_url": url
     // });
-
+    Navigator.pop(context);
     Navigator.pushNamedAndRemoveUntil(context, "/home_page", (route) => false);
-
   }
 
 }

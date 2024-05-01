@@ -7,6 +7,7 @@ import 'package:firebase_setup/login_page.dart';
 import 'package:firebase_setup/utils.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_cropper/image_cropper.dart';
@@ -22,11 +23,15 @@ class SignUpPage extends StatefulWidget {
 }
 
 class _SignUpPageState extends State<SignUpPage> {
+  TextEditingController usernameController = TextEditingController();
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
 
   CroppedFile? croppedImageFile;
   XFile? resultFile;
+
+  final GlobalKey<FormState> _formKey = GlobalKey();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -38,31 +43,57 @@ class _SignUpPageState extends State<SignUpPage> {
             color: Colors.tealAccent,
             child: Padding(
               padding: const EdgeInsets.only(top: 60.0, right: 30, left: 30, bottom: 80),
-              child: Column(
-                children: [
-                  InkWell(
-                    onTap: openGallery,
-                    borderRadius: BorderRadius.circular(60),
-                    child: Container(
-                      height: 120, width: 120,
-                      decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(60),
-                          color: Colors.black12
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    InkWell(
+                      onTap: openGallery,
+                      borderRadius: BorderRadius.circular(60),
+                      child: Container(
+                        height: 120, width: 120,
+                        decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(60),
+                            color: Colors.black12
+                        ),
+                        child:  (croppedImageFile != null) ? ClipRRect(
+                            borderRadius: BorderRadius.circular(60),
+                            child: Image.file(File(croppedImageFile!.path), fit: BoxFit.cover)) : const SizedBox(),
                       ),
-                      child:  (croppedImageFile != null) ? ClipRRect(
-                          borderRadius: BorderRadius.circular(60),
-                          child: Image.file(File(croppedImageFile!.path), fit: BoxFit.cover)) : const SizedBox(),
                     ),
-                  ),
-                  const SizedBox(height: 15.0),
-                  AppUtils.buildTextField(controller: emailController, hint: "enter email"),
-                  const SizedBox(height: 15.0),
-                  AppUtils.buildTextField(controller: passwordController, hint: "enter password"),
-                  const SizedBox(height: 30.0),
-                  AppUtils.buildElevatedButton(() {
-                    firebaseSignUp();
-                  }, "SignUp"),
-                ],
+                    const SizedBox(height: 15.0),
+                    AppUtils.buildTextField(controller: usernameController, hint: "enter name", validate: (values){
+                      debugPrint("validate");
+                        if(values == ""){
+                          return "please fill required field";
+                        }else{
+                          return null;
+                        }
+                    }),
+                    const SizedBox(height: 15.0),
+                    AppUtils.buildTextField(controller: emailController, hint: "enter email", validate: (values){
+                      if(values == ""){
+                        return "please fill required field";
+                      }else{
+                        return null;
+                      }
+                    }),
+                    const SizedBox(height: 15.0),
+                    AppUtils.buildTextField(controller: passwordController, hint: "enter password", validate: (values){
+                      if(values == ""){
+                        return "please fill required field";
+                      }else{
+                        return null;
+                      }
+                    }),
+                    const SizedBox(height: 30.0),
+                    AppUtils.buildElevatedButton(() {
+                      if(_formKey.currentState!.validate()) {
+                        firebaseSignUp();
+                      }
+                    }, "SignUp"),
+                  ],
+                ),
               ),
             ),
           ),
@@ -134,30 +165,39 @@ class _SignUpPageState extends State<SignUpPage> {
 
     /// send data into firestore database
     String? uid = credential.user?.uid;
+    // String? userName = credential.user?.displayName;
     SharedPreferences preferences = await SharedPreferences.getInstance();
     preferences.setString("USER_ID", uid.toString());
-    FirebaseApi.addUserData(uid: uid.toString(), email: emailController.text, url: url);
+    // preferences.setString("USER_NAME", userName.toString());
+    await FirebaseApi.addUserData(uid: uid.toString(), email: emailController.text, url: url, userName: usernameController.text);
     // FirebaseFirestore.instance.collection("users").doc(emailController.text).set({
     //   "email": emailController.text,
     //   "image_url": url
     // });
-
+    Navigator.pop(context);
     Navigator.pushNamedAndRemoveUntil(context, "/home_page", (route) => false);
 
   }
 
   Future<void> firebaseSignUp() async {
-    try {
-      FirebaseApi.createUserWithEmailAndPassword(email: emailController.text, password: passwordController.text).then((credentials) => uploadData(credentials));
-      // UserCredential? userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: emailController.text, password: passwordController.text);
-      // if(userCredential != null){
-      //   uploadData();
-      // }
-    }on FirebaseAuth catch(e){
-      debugPrint("error is : $e");
+    if (croppedImageFile != null) {
+      try {
+        AppUtils.loadingDialog(context);
+        FirebaseApi.createUserWithEmailAndPassword(
+            email: emailController.text, password: passwordController.text)
+            .then((credentials) => uploadData(credentials));
+        // UserCredential? userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: emailController.text, password: passwordController.text);
+        // if(userCredential != null){
+        //   uploadData();
+        // }
+      } on FirebaseAuth catch (e) {
+        Navigator.pop(context);
+        debugPrint("error is : $e");
+      }
     }
-
-
+    else {
+    Fluttertoast.showToast(msg: "Please add photo");
+    }
   }
 }
 

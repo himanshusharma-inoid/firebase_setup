@@ -33,6 +33,7 @@ class _MyHomePageState extends State<MyHomePage> {
   List userList = [];
   List searchUserList = [];
   String? userId;
+  String? userName;
   @override
   void initState() {
     getUserInformations();
@@ -81,7 +82,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                  if(querySnapshot.docs.isNotEmpty){
                                    debugPrint("chat is already created");
                                    String chatId = querySnapshot.docs.single['chat_id'];
-                                   Navigator.pushNamed(context, "/chat_page", arguments: {"chat_id": chatId, "user_id": userId, "to_id": snapshot.data!.docs[index]["user_id"]});
+                                   Navigator.pushNamed(context, "/chat_page", arguments: {"chat_id": chatId, "user_id": userId, "to_id": snapshot.data!.docs[index]["user_id"], "user_name": userName.toString()});
                                  }else{
                                    debugPrint("new chat created");
                                    var uuid = const Uuid();
@@ -97,7 +98,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
                                    FirebaseFirestore.instance.collection("chats").doc(chatId).set(chatModel.toMap());
 
-                                   Navigator.pushNamed(context, "/chat_page", arguments: {"chat_id": chatId, "user_id": userId, "to_id": snapshot.data!.docs[index]["user_id"]});
+                                   Navigator.pushNamed(context, "/chat_page", arguments: {"chat_id": chatId, "user_id": userId, "to_id": snapshot.data!.docs[index]["user_id"], "user_name": userName.toString()});
                                  }
                                });
 
@@ -260,7 +261,7 @@ class _MyHomePageState extends State<MyHomePage> {
     Map<String, dynamic> data = {
       "to": fcmToken,
       "notification": {
-        "title" : "test",
+        "title" : userName.toString(),
         "body" : "successfully sent notification"
       },
       "data":{
@@ -286,6 +287,8 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> getUserInformations() async {
     SharedPreferences preferences = await SharedPreferences.getInstance();
     userId = preferences.getString("USER_ID");
+    final querySnapshot = await FirebaseFirestore.instance.collection("users").where("user_id", isEqualTo: userId).get();
+    userName = querySnapshot.docs.single["user_name"];
     debugPrint("user id is: $userId");
     setState(() {});
   }

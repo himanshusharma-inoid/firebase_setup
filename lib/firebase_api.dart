@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_setup/chat_model.dart';
 import 'package:firebase_setup/message_model.dart';
+import 'package:firebase_setup/user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:random_string/random_string.dart';
 import 'package:uuid/uuid.dart';
@@ -30,12 +31,15 @@ static Future signOut() async {
 }
 
 
-static Future addUserData({required String uid, required String email, required String url}) async {
-  await FirebaseFirestore.instance.collection("users").doc(uid).set({
-    "user_id": uid,
-    "email": email,
-    "image_url": url,
-  });
+static Future addUserData({required String uid, required String email, required String url, required String userName}) async {
+  UserModel userModel = UserModel(
+    email: email,
+    userName: userName,
+    uid: uid,
+    imageUrl: url
+  );
+
+  await FirebaseFirestore.instance.collection("users").doc(uid).set(userModel.toMap());
 }
 
 static Stream<QuerySnapshot> getUsersList(String userId) {
@@ -44,7 +48,7 @@ static Stream<QuerySnapshot> getUsersList(String userId) {
 
 static Future<QuerySnapshot> createChat({required BuildContext context,required String userId, required String toId})  async {
      return await FirebaseFirestore.instance.collection("chats").where("chat_users", arrayContains: userId).get();
-  }
+}
 
 static Stream<QuerySnapshot<Map<String, dynamic>>> getChatMessage({required String chatId}){
   return FirebaseFirestore.instance.collection("chats/$chatId/messages").orderBy("timestamp", descending: true).snapshots();

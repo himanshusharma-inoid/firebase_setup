@@ -11,9 +11,10 @@ class AppUtils {
       backgroundColor: Colors.tealAccent,titleTextStyle:const TextStyle(color: Colors.deepPurple,fontSize: 30),);
 
   }
- static TextField  buildTextField({required TextEditingController controller, String? hint}){
-   return TextField(
+ static TextFormField  buildTextField({required TextEditingController controller, String? hint, Function(String?)? validate}){
+   return TextFormField(
        controller: controller,
+       validator: (values) => validate!(values),
        decoration: InputDecoration(
          hintText: (hint!=null) ? hint : null,
          border: OutlineInputBorder(
@@ -23,9 +24,10 @@ class AppUtils {
    );
  }
 
-  static TextFormField  buildPhoneNumberTextFormField({required TextEditingController controller, String? hint, Function(String?)? callback}){
+  static TextFormField  buildPhoneNumberTextFormField({required TextEditingController controller, String? hint, Function(String?)? callback, Function(String?)? validate}){
     return TextFormField(
         controller: controller,
+        validator: (values) => validate!(values),
         decoration: InputDecoration(
            prefixIcon: CountryCodePicker(
             onChanged: (code){
@@ -53,7 +55,7 @@ class AppUtils {
   }
 
  static buildElevatedButton(VoidCallback voidCallback,String text){
-    return SizedBox(height: 40,width: 200,child: ElevatedButton(onPressed: () =>voidCallback(),
+    return SizedBox(height: 40,width: 200,child: ElevatedButton(onPressed: () => voidCallback(),
         child: Text(text)));
  }
  static customAlertBox(BuildContext context, {required String text}){
@@ -63,6 +65,28 @@ class AppUtils {
         );
     });
  }
+
+  static loadingDialog(BuildContext context){
+    return showDialog(context: context,
+        barrierDismissible: false,
+        builder:(BuildContext context){
+      return  AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.0),
+          ),
+        title: const Row(
+          children: [
+            SizedBox(
+                height: 30,
+                width: 30,
+                child: CircularProgressIndicator()),
+            SizedBox(width: 12.0),
+            Text("Loading...")
+          ],
+        ),
+      );
+    });
+  }
 static void showToast({String? message}) {
   Fluttertoast.showToast(msg: message.toString());
 }

@@ -1,8 +1,14 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_setup/firebase_api.dart';
 import 'package:firebase_setup/message_model.dart';
 import 'package:firebase_setup/utils.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -19,7 +25,16 @@ class _ChatScreenState extends State<ChatScreen> {
   String chatId = "";
   String userId = "";
   String toId = "";
+  String deviceBrand = "";
+  String userName = "";
 
+  @override
+  void initState() {
+    getDeviceInfo();
+
+    super.initState();
+  }
+  
   @override
   Widget build(BuildContext context) {
     arguments = (ModalRoute.of(context)?.settings.arguments ??
@@ -29,6 +44,7 @@ class _ChatScreenState extends State<ChatScreen> {
     chatId = arguments["chat_id"];
     userId = arguments["user_id"];
     toId = arguments["to_id"];
+    userName = arguments["user_name"];
     return Scaffold(
       appBar: AppUtils.customAppbar(text: "Chat"),
       body: Padding(
@@ -130,6 +146,7 @@ class _ChatScreenState extends State<ChatScreen> {
         .set(messageModel.toMap());
 
     updateLastMessage();
+    sendNotification();
     sendMessageController.clear();
   }
 
@@ -140,5 +157,67 @@ class _ChatScreenState extends State<ChatScreen> {
         .update({
         "last_message": sendMessageController.text
     });
+  }
+
+  Future<void> getDeviceInfo() async {
+    if(Platform.isAndroid){
+      final androidInfo = await DeviceInfoPlugin().androidInfo;
+      deviceBrand = androidInfo.brand;
+    }
+    // else{
+    //   final iosInfo = await DeviceInfoPlugin().iosInfo;
+    //   deviceBrand = iosInfo.utsname.machine;
+    // }
+    if(kDebugMode){
+      debugPrint("device brand is: $deviceBrand");
+    }
+  }
+
+  Future<void> sendNotification() async {
+    String kPushNotificationUrl = "https://fcm.googleapis.com/fcm/send";
+    String cloudMessagingServerKey = "AAAAwlEz-SM:APA91bEUVpuRO5ka5_iy6Elh_hkJdewVvqVXOy6DLTww7qOR4ftUfKqT7pXjh1PwB-gm9llevym141StouTw1UgI4oznkipjAIKtL5hlREkvat15kLISTMbK6ZTQAj9MoFLtlhXXMfON";
+
+    /// Vivo 1907 device
+    if(deviceBrand == "Redmi"){
+      Map<String, dynamic> data = {
+        "to": "f9hxBP_sQZmOjoscnyjuYH:APA91bFq7JoaZAj1-dc0VzTf3aafHuVHAG1rMg6qAYosIHLFxuffhiOIwbcTYgwZMuIoevmZ_YqA0QHI6APjljSLUstkXMQ8hneywTwTJZgayAYYq4Jb_SbYSWCozmFjQc9Ybk9ORupy",
+        "notification": {
+          "title" : userName.toString(),
+          "body" : sendMessageController.text
+        },
+        "data":{
+          "type" : "Chat_Message"
+        }
+      };
+
+      Map<String, String> headers = {
+        "content-Type": "application/json; charset=UTF-8",
+        "Authorization": "key=$cloudMessagingServerKey"
+      };
+
+      http.post(Uri.parse(kPushNotificationUrl), body: jsonEncode(data), headers: headers);
+
+    }
+    /// Redmi Device number 4
+    else if(deviceBrand == "vivo"){
+      Map<String, dynamic> data = {
+        "to": "emjGwMFtTV-ZYPi0A_E56U:APA91bFv3O6Ue7mepXOAueJyRf8GKSBZmA235fhhkxkkLaDpit6XJNTk8FuQcUjp4tZKZ9B1i8YS20rBehfmGwsIraDO9BMefExx-4ThZoJcj79HBX1IPZtyk3iOelt4zOUyC-XqpXjm",
+        "notification": {
+          "title" : userName.toString(),
+          "body" : sendMessageController.text
+        },
+        "data":{
+          "type" : "Chat_Message"
+        }
+      };
+
+      Map<String, String> headers = {
+        "content-Type": "application/json; charset=UTF-8",
+        "Authorization": "key=$cloudMessagingServerKey"
+      };
+
+      http.post(Uri.parse(kPushNotificationUrl), body: jsonEncode(data), headers: headers);
+
+    }
   }
 }

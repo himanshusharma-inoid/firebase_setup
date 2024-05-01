@@ -12,6 +12,8 @@ class ForgotPasswordPage extends StatefulWidget {
 
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   TextEditingController emailController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -22,16 +24,27 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           color: Colors.tealAccent,
           child: Padding(
             padding: const EdgeInsets.only(top: 60.0, right: 30, left: 30, bottom: 60),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AppUtils.buildTextField(controller: emailController, hint: "enter email"),
-                const SizedBox(height: 30.0),
-                AppUtils.buildElevatedButton(() {
-                  firebaseForgotPassword();
-                }, "Submit"),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppUtils.buildTextField(controller: emailController, hint: "enter email", validate: (values){
+                    if(values == ""){
+                      return "please fill required field";
+                    }else{
+                      return null;
+                    }
+                  }),
+                  const SizedBox(height: 30.0),
+                  AppUtils.buildElevatedButton(() {
+                  if(_formKey.currentState!.validate()) {
+                    firebaseForgotPassword();
+                  }
+                  }, "Submit"),
 
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -40,14 +53,17 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   }
 
   void firebaseForgotPassword() {
+    AppUtils.loadingDialog(context);
     try {
-      FirebaseApi.sendPasswordResetEmail(email: emailController.text).then((value) =>
-          AppUtils.customAlertBox(context, text: "password reset send to email")
-      );
+      FirebaseApi.sendPasswordResetEmail(email: emailController.text).then((value) {
+        Navigator.pop(context);
+        AppUtils.customAlertBox(context, text: "password reset send to email");
+      });
       // FirebaseAuth.instance.sendPasswordResetEmail(email: emailController.text).then((value) =>
       // AppUtils.customAlertBox(context, text: "password reset send to email")
       // );
     }on FirebaseAuth catch(e){
+      Navigator.pop(context);
       debugPrint("error is : $e");
     }
   }
