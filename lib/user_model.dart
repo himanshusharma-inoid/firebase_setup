@@ -3,14 +3,15 @@ class UserModel{
   String? userName;
   String? uid;
   String? imageUrl;
+  bool? online;
+  UserModel({this.email, this.userName, this.uid, this.imageUrl, this.online});
 
-  UserModel({this.email, this.userName, this.uid, this.imageUrl});
-
-  UserModel.fromJson(Map<String, dynamic> map){
+  UserModel.fromMap(Map<String, dynamic> map){
     email = map["email"];
     userName = map["user_name"];
     uid = map["user_id"];
     imageUrl = map["image_url"];
+    online = map["online"];
   }
 
   Map<String, dynamic> toMap() {
@@ -19,6 +20,7 @@ class UserModel{
       "user_name": userName,
       "user_id": uid,
       "image_url": imageUrl,
+      "online": online
     };
   }
 

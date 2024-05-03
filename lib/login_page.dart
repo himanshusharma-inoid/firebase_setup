@@ -216,8 +216,8 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> firebaseLogin() async {
       if (step == 1) {
         if(_formKey.currentState!.validate()){
-          AppUtils.loadingDialog(context);
           try {
+            AppUtils.loadingDialog(context);
             FirebaseApi.signInWithEmailAndPassword(email: emailController.text, password: passwordController.text).then((credential) async {
               Navigator.pop(context);
               String? uid = credential.user?.uid;

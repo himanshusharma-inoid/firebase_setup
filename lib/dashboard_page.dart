@@ -2,13 +2,11 @@ import 'dart:convert';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_setup/chat_model.dart';
 import 'package:firebase_setup/firebase_api.dart';
-import 'package:firebase_setup/notification_service.dart';
+import 'package:firebase_setup/main.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:pinput/pinput.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
@@ -21,7 +19,7 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver{
 
   String? fcmToken;
 
@@ -31,13 +29,34 @@ class _MyHomePageState extends State<MyHomePage> {
   String _textSearch = "";
 
   List userList = [];
+  List chatList = [];
   List searchUserList = [];
   String? userId;
   String? userName;
+  String? imageUrl;
+  String? toId;
   @override
   void initState() {
+    WidgetsBinding.instance.addObserver(this);
     getUserInformations();
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState appLifecycleState) {
+    debugPrint("appLifecycle state is: $appLifecycleState");
+    if(appLifecycleState == AppLifecycleState.resumed){
+      updateOnlineStatus(true);
+    }else{
+      updateOnlineStatus(false);
+    }
+    super.didChangeAppLifecycleState(appLifecycleState);
   }
 
   @override
@@ -59,122 +78,19 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ],
       ),
-      body: Column(
+      body: (userId != null) ? Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          buildUserList(),
           buildSearchBar(),
-          Expanded(
-            child: (_textSearch == "") ?
-            (userId != null) ? StreamBuilder(
-              stream:  FirebaseApi.getUsersList(userId!) ,
-              builder: (context,  snapshot) {
-                if(snapshot.connectionState == ConnectionState.waiting){
-                    return const Center(child: CircularProgressIndicator());
-                  }else if(snapshot.connectionState == ConnectionState.active){
-                    if(snapshot.hasData) {
-                      userList = snapshot.data!.docs;
-                      return ListView.separated(
-                        padding: const EdgeInsets.symmetric(vertical: 16.0),
-                          itemCount: userList.length,
-                          itemBuilder: (context, index) {
-                            return InkWell(
-                              onTap: () async {
-                               FirebaseApi.createChat(context: context, userId: userId!, toId: snapshot.data!.docs[index]["user_id"]).then((querySnapshot) {
-                                 if(querySnapshot.docs.isNotEmpty){
-                                   debugPrint("chat is already created");
-                                   String chatId = querySnapshot.docs.single['chat_id'];
-                                   Navigator.pushNamed(context, "/chat_page", arguments: {"chat_id": chatId, "user_id": userId, "to_id": snapshot.data!.docs[index]["user_id"], "user_name": userName.toString()});
-                                 }else{
-                                   debugPrint("new chat created");
-                                   var uuid = const Uuid();
-                                   String chatId = uuid.v1();
-                                   ChatModel chatModel = ChatModel(
-                                       chatId: chatId,
-                                       userId: userId,
-                                       toId: snapshot.data!.docs[index]["user_id"],
-                                       lastMessage: "",
-                                       timestamp: DateTime.now().millisecondsSinceEpoch,
-                                       chatUsers: [userId!, snapshot.data!.docs[index]["user_id"]]
-                                   );
-
-                                   FirebaseFirestore.instance.collection("chats").doc(chatId).set(chatModel.toMap());
-
-                                   Navigator.pushNamed(context, "/chat_page", arguments: {"chat_id": chatId, "user_id": userId, "to_id": snapshot.data!.docs[index]["user_id"], "user_name": userName.toString()});
-                                 }
-                               });
-
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 4.0),
-                                child: ListTile(
-                                  leading: ClipRRect(
-                                    borderRadius: const BorderRadius.all(Radius.circular(30.0)),
-                                    child: CachedNetworkImage(
-                                      placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-                                      errorWidget: (context, url, error) => const Icon(Icons.boy_outlined),
-                                      imageUrl: userList[index]["image_url"],
-                                      height: 60.0,
-                                      width: 60.0,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                  title: Text(userList[index]["email"]),
-                                  // subtitle:
-                                  // userList[index]["last_message"] != null ?
-                                  // Text(userList[index]["last_message"]) : const Text("sent hii to this user..", style: TextStyle(color: Colors.tealAccent)),
-                                ),
-                              ),
-                            );
-                          },
-                        separatorBuilder: (BuildContext context, int index) {
-                           return const Divider(
-                             thickness: 1,
-                             indent: 10,
-                             endIndent: 10,
-                             color: Colors.black12,
-                           );
-                        },
-                      );
-                    }else if(snapshot.hasError){
-                      return const Text("something went wrong");
-                    }
-                  }return const Text("something went wrong");
-              }
-            ) : const CircularProgressIndicator() : ListView.separated(
-      padding: const EdgeInsets.symmetric(vertical: 16.0),
-      itemCount: searchUserList.length,
-      itemBuilder: (context, index) {
-        return InkWell(
-          onTap: (){
-
-          },
-          child: ListTile(
-            leading: ClipRRect(
-              borderRadius: const BorderRadius.all(Radius.circular(30.0)),
-              child: CachedNetworkImage(
-                placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-                errorWidget: (context, url, error) => const Icon(Icons.boy_outlined),
-                imageUrl: searchUserList[index]["image_url"],
-                height: 60,
-                width: 60,
-                fit: BoxFit.cover,
-              ),
-            ),
-            title: Text(searchUserList[index]["email"]),
+          const SizedBox(height: 5.0),
+          const Padding(
+            padding: EdgeInsets.only(top: 8.0, left: 20),
+            child: Text("Chats", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22.0)),
           ),
-        );
-      },
-      separatorBuilder: (BuildContext context, int index) {
-        return const Divider(
-          thickness: 1,
-          indent: 10,
-          endIndent: 10,
-          color: Colors.black12,
-        );
-      },
-    )
-            ),
+          buildChatList(),
         ],
-      ),
+      ) : const Center(child: CircularProgressIndicator()),
       // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
@@ -208,7 +124,7 @@ class _MyHomePageState extends State<MyHomePage> {
               onChanged: (value) {
                 searchUserList.clear();
                 if (value.isNotEmpty) {
-                  for (var userDetail in userList) {
+                  for (var userDetail in chatList) {
                     if (userDetail["email"].contains(value)) {
                       searchUserList.add(userDetail);
                       debugPrint("search user details is: ${searchUserList.length}");
@@ -287,10 +203,210 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> getUserInformations() async {
     SharedPreferences preferences = await SharedPreferences.getInstance();
     userId = preferences.getString("USER_ID");
-    final querySnapshot = await FirebaseFirestore.instance.collection("users").where("user_id", isEqualTo: userId).get();
-    userName = querySnapshot.docs.single["user_name"];
-    debugPrint("user id is: $userId");
-    setState(() {});
+    FirebaseFirestore.instance.collection("users").where("user_id", isEqualTo: userId).snapshots().listen((querySnapshot) {
+      userId = querySnapshot.docs.single["user_id"];
+      userName = querySnapshot.docs.single["user_name"];
+      imageUrl = querySnapshot.docs.single["image_url"];
+      debugPrint("user id is: $userId");
+      setState(() {});
+    });
+   // final querySnapshot = await FirebaseFirestore.instance.collection("users").where("user_id", isEqualTo: userId).get();
+  }
+
+  buildUserList() {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20),
+      height: 60.0,
+      child: StreamBuilder(
+          stream: FirebaseApi.getUsersList(userId!) ,
+          builder: (context,  snapshot) {
+            if(snapshot.connectionState == ConnectionState.waiting){
+              return const Center(child: CircularProgressIndicator());
+            }else if(snapshot.connectionState == ConnectionState.active){
+              if(snapshot.hasData) {
+                userList = snapshot.data!.docs;
+                return ListView.separated(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.only(right: 8.0),
+                  itemCount: userList.length,
+                  scrollDirection: Axis.horizontal,
+                  itemBuilder: (context, index) {
+                    return InkWell(
+                      onTap: () async {
+                        FirebaseApi.createChat(context: context, userId: userId!, toId: snapshot.data!.docs[index]["user_id"]).then((querySnapshot) {
+                          if(querySnapshot.docs.isNotEmpty){
+                            debugPrint("chat is already created");
+                            String chatId = querySnapshot.docs.single['chat_id'];
+                            String onlineStatus = querySnapshot.docs.single['online'];
+                            Navigator.pushNamed(context, "/chat_page", arguments: {"chat_id": chatId, "user_id": userId, "to_id": snapshot.data!.docs[index]["user_id"], "user_name": userName.toString(), "image_url": userList[index]["image_url"]});
+                          }else{
+                            debugPrint("new chat created");
+                            var uuid = const Uuid();
+                            String chatId = uuid.v1();
+                            OtherUserInfoModel otherUserInfo = OtherUserInfoModel(
+                              userName: userList[index]["user_name"],
+                              userId: userList[index]["user_id"],
+                              imageUrl: userList[index]["image_url"]
+                            );
+                            UserInfoModel userInfo = UserInfoModel(
+                                userName: userName,
+                                userId: userId,
+                                imageUrl: imageUrl
+                            );
+                            ChatModel chatModel = ChatModel(
+                                chatId: chatId,
+                                lastMessage: "",
+                                timestamp: DateTime.now().millisecondsSinceEpoch,
+                                chatUsers: [userId!, snapshot.data!.docs[index]["user_id"]],
+                                otherUserInfo: otherUserInfo.toMap(),
+                                userInfo: userInfo.toMap(),
+                                participants: {
+                                  userId!: true,
+                                  snapshot.data!.docs[index]["user_id"]: true
+                                }
+                            );
+
+                            FirebaseFirestore.instance.collection("chats").doc(chatId).set(chatModel.toMap());
+
+                            Navigator.pushNamed(context, "/chat_page", arguments: {"chat_id": chatId, "user_id": userId, "to_id": snapshot.data!.docs[index]["user_id"], "user_name": userName.toString(), "image_url": userList[index]["image_url"]});
+                          }
+                        });
+
+                      },
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.all(Radius.circular(30.0)),
+                        child: CachedNetworkImage(
+                          placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                          errorWidget: (context, url, error) => const Icon(Icons.boy_outlined),
+                          imageUrl: userList[index]["image_url"],
+                          height: 60.0,
+                          width: 60.0,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    );
+                  },
+                  separatorBuilder: (BuildContext context, int index) {
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 8.0),
+                      width: 1,
+                      height: 50,
+                      color: Colors.black12,
+                    );
+                  },
+                );
+              }else if(snapshot.hasError){
+                return const Text("something went wrong");
+              }
+            }return const Text("something went wrong");
+          }
+      ),
+    );
+  }
+
+  buildChatList() {
+    return Expanded(
+        child: (_textSearch == "") ?
+        StreamBuilder(
+            stream: FirebaseApi.getChatList(userId!) ,
+            builder: (context,  snapshot) {
+              if(snapshot.connectionState == ConnectionState.waiting){
+                return const Center(child: CircularProgressIndicator());
+              }else if(snapshot.connectionState == ConnectionState.active){
+                if(snapshot.hasData) {
+                  chatList = snapshot.data!.docs;
+                  return ListView.separated(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    itemCount: chatList.length,
+                    itemBuilder: (context, index) {
+                      return InkWell(
+                        onTap: () async {
+                          String chatId = chatList[index]['chat_id'];
+                          if(userId == chatList[index]["userInfo"]['user_id']){
+                            toId = chatList[index]["otherUserInfo"]['user_id'];
+                            imageUrl = chatList[index]["otherUserInfo"]['image_url'];
+                          }else{
+                            toId = chatList[index]["userInfo"]['user_id'];
+                            imageUrl = chatList[index]["userInfo"]['image_url'];
+                          }
+                          Navigator.pushNamed(context, "/chat_page", arguments: {"chat_id": chatId, "user_id": userId, "to_id": toId, "user_name": userName.toString(), "image_url": imageUrl});
+                          },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4.0),
+                          child: ListTile(
+                            leading: ClipRRect(
+                              borderRadius: const BorderRadius.all(Radius.circular(30.0)),
+                              child: CachedNetworkImage(
+                                placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                                errorWidget: (context, url, error) => const Icon(Icons.boy_outlined),
+                                imageUrl: userId == chatList[index]["userInfo"]['user_id'] ? chatList[index]["otherUserInfo"]["image_url"] : chatList[index]["userInfo"]['image_url'],
+                                height: 60.0,
+                                width: 60.0,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            title: Text(userId == chatList[index]["userInfo"]['user_id'] ? chatList[index]["otherUserInfo"]['user_name'] : chatList[index]["userInfo"]['user_name']),
+                            subtitle: chatList[index]["last_message"] != "" ?
+                            Text(chatList[index]["last_message"]) : const Text("sent hii to this user..", style: TextStyle(color: Colors.tealAccent)),
+                          ),
+                        ),
+                      );
+                    },
+                    separatorBuilder: (BuildContext context, int index) {
+                      return const Divider(
+                        thickness: 1,
+                        indent: 10,
+                        endIndent: 10,
+                        color: Colors.black12,
+                      );
+                    },
+                  );
+                }else if(snapshot.hasError){
+                  return const Text("something went wrong");
+                }
+              }return const Text("something went wrong");
+            }
+        ) : ListView.separated(
+          padding: const EdgeInsets.symmetric(vertical: 16.0),
+          itemCount: searchUserList.length,
+          itemBuilder: (context, index) {
+            return InkWell(
+              onTap: (){
+
+              },
+              child: ListTile(
+                leading: ClipRRect(
+                  borderRadius: const BorderRadius.all(Radius.circular(30.0)),
+                  child: CachedNetworkImage(
+                    placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                    errorWidget: (context, url, error) => const Icon(Icons.boy_outlined),
+                    imageUrl: searchUserList[index]["image_url"],
+                    height: 60,
+                    width: 60,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                title: Text(searchUserList[index]["email"]),
+              ),
+            );
+          },
+          separatorBuilder: (BuildContext context, int index) {
+            return const Divider(
+              thickness: 1,
+              indent: 10,
+              endIndent: 10,
+              color: Colors.black12,
+            );
+          },
+        )
+    );
+  }
+
+  void updateOnlineStatus(bool onlineStatus) {
+    FirebaseFirestore.instance.collection("users").doc(userId).update(
+        {
+          "online": onlineStatus
+        });
   }
 
 }

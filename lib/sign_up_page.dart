@@ -35,7 +35,7 @@ class _SignUpPageState extends State<SignUpPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppUtils.customAppbar(text: "SignUp"),
+      appBar: AppUtils.customAppbar(text: "SignUp", voidCallback: ()=> Navigator.of(context).pop()),
       body: SingleChildScrollView(
         child: ClipPath(
           clipper: MyCubicClipper(),

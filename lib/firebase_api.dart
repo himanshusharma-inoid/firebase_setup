@@ -1,13 +1,8 @@
 import 'dart:async';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_setup/chat_model.dart';
-import 'package:firebase_setup/message_model.dart';
 import 'package:firebase_setup/user_model.dart';
 import 'package:flutter/material.dart';
-import 'package:random_string/random_string.dart';
-import 'package:uuid/uuid.dart';
 
 class FirebaseApi{
 
@@ -36,7 +31,8 @@ static Future addUserData({required String uid, required String email, required 
     email: email,
     userName: userName,
     uid: uid,
-    imageUrl: url
+    imageUrl: url,
+    online: true
   );
 
   await FirebaseFirestore.instance.collection("users").doc(uid).set(userModel.toMap());
@@ -46,8 +42,12 @@ static Stream<QuerySnapshot> getUsersList(String userId) {
   return FirebaseFirestore.instance.collection("users").where("user_id", isNotEqualTo: userId).snapshots();
 }
 
+static Stream<QuerySnapshot> getChatList(String userId) {
+  return FirebaseFirestore.instance.collection("chats").where("chat_users", arrayContains: userId).snapshots();
+}
+
 static Future<QuerySnapshot> createChat({required BuildContext context,required String userId, required String toId})  async {
-     return await FirebaseFirestore.instance.collection("chats").where("chat_users", arrayContains: userId).get();
+     return await FirebaseFirestore.instance.collection("chats").where("participants.$userId", isEqualTo: true).where("participants.$toId", isEqualTo: true).get();
 }
 
 static Stream<QuerySnapshot<Map<String, dynamic>>> getChatMessage({required String chatId}){

@@ -1,13 +1,55 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:country_code_picker/country_code_picker.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:firebase_setup/main.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 class AppUtils {
-  static AppBar customAppbar({String? text})
+  static AppBar customAppbar({String? text, String? imageUrl, VoidCallback? voidCallback, bool fromChatPage = false})
   {
     return AppBar(
-      title: (text!= null) ? Text(text) : null,
+      leadingWidth: 120,
+      leading: Padding(
+        padding: const EdgeInsets.only(left: 10.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if(voidCallback!= null)
+            ...[InkWell(
+                onTap: () {
+                  voidCallback();
+                },
+                child: const Icon(Icons.arrow_back)),
+            const SizedBox(width: 8.0)
+          ],
+            (imageUrl!= null) ? ClipRRect(
+              borderRadius: const BorderRadius.all(Radius.circular(20.0)),
+              child: CachedNetworkImage(
+                placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                errorWidget: (context, url, error) => const Icon(Icons.boy_outlined),
+                imageUrl: imageUrl,
+                height: 40.0,
+                width: 40.0,
+                fit: BoxFit.cover,
+              ),
+            ) : const SizedBox(),
+        ]
+        ),
+      ),
+      title: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          (text!= null) ? Text(text) : const SizedBox(),
+          if(fromChatPage == true)
+          ValueListenableBuilder(
+              valueListenable: onlineStatus,
+              builder: (BuildContext context, value, widget){
+                return Text((onlineStatus.value == true) ? "online" : "offline", style: const TextStyle(fontSize: 12));
+              })
+        ],
+      ),
+      centerTitle: true,
       backgroundColor: Colors.tealAccent,titleTextStyle:const TextStyle(color: Colors.deepPurple,fontSize: 30),);
 
   }

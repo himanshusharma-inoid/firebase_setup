@@ -17,7 +17,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppUtils.customAppbar(text: "Forgot Password"),
+      appBar: AppUtils.customAppbar(text: "Forgot Password", voidCallback: ()=> Navigator.of(context).pop()),
       body: ClipPath(
         clipper: MyArcClipper(),
         child: Container(

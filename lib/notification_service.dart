@@ -4,6 +4,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import 'chat_page.dart';
 import 'message_screen.dart';
 
 class NotificationServices{
@@ -97,7 +98,7 @@ void initLocalNotifications(BuildContext context){
   void firebaseInit(BuildContext context){
 
     ///showing notifications when app is terminated
-    firebaseMessaging.getInitialMessage().then((message) {
+      firebaseMessaging.getInitialMessage().then((message) {
       debugPrint("received terminated notification message");
       debugPrint("FirebaseMessaging.getInitialMessage");
       if(message == null) return;
@@ -125,10 +126,7 @@ void initLocalNotifications(BuildContext context){
       debugPrint("body is: ${message.notification?.body}");
 
       var usrMap = message.data;
-      if(usrMap['type'] == "received_notifications"){
-        // navigate to particular screen
-        Navigator.push(context, MaterialPageRoute(builder: (context) => const MessageScreen()));
-      }
+      handleMessage(context, usrMap);
 
     });
 
@@ -174,10 +172,17 @@ void initLocalNotifications(BuildContext context){
   }
 
   void handleMessage(BuildContext context, Map<String, dynamic> usrMap) {
+    String chatId = usrMap['chat_id'];
+    String userId = usrMap['user_id'];
+    String toId = usrMap['to_id'];
+    String userName = usrMap['user_name'];
     if(usrMap['type'] == "received_notifications"){
       // navigate to particular screen
       Navigator.push(context, MaterialPageRoute(builder: (context) => const MessageScreen()));
 
+    }else if(usrMap['type'] == "New_Chat_Message"){
+      debugPrint("message received");
+      Navigator.pushNamed(context, "/chat_page", arguments: {"chat_id": chatId, "user_id": userId, "to_id": toId, "user_name": userName});
     }
   }
 

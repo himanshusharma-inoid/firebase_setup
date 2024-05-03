@@ -8,8 +8,9 @@ import 'package:firebase_setup/message_model.dart';
 import 'package:firebase_setup/utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
+
+import 'main.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -27,26 +28,27 @@ class _ChatScreenState extends State<ChatScreen> {
   String toId = "";
   String deviceBrand = "";
   String userName = "";
+  String imageUrl = "";
 
   @override
   void initState() {
     getDeviceInfo();
-
     super.initState();
   }
   
   @override
   Widget build(BuildContext context) {
-    arguments = (ModalRoute.of(context)?.settings.arguments ??
-        <String, dynamic>{}) as Map;
+    arguments = (ModalRoute.of(context)?.settings.arguments ?? <String, dynamic>{}) as Map;
     debugPrint("argument data is: $arguments");
     debugPrint("chat id is: ${arguments["chat_id"]}");
     chatId = arguments["chat_id"];
     userId = arguments["user_id"];
     toId = arguments["to_id"];
     userName = arguments["user_name"];
+    imageUrl = arguments["image_url"];
+    getOtherUserInfo();
     return Scaffold(
-      appBar: AppUtils.customAppbar(text: "Chat"),
+      appBar: AppUtils.customAppbar(text: "Chat", imageUrl: imageUrl, voidCallback: ()=> Navigator.of(context).pop(), fromChatPage: true),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
         child: Column(
@@ -183,10 +185,14 @@ class _ChatScreenState extends State<ChatScreen> {
         "to": "f9hxBP_sQZmOjoscnyjuYH:APA91bFq7JoaZAj1-dc0VzTf3aafHuVHAG1rMg6qAYosIHLFxuffhiOIwbcTYgwZMuIoevmZ_YqA0QHI6APjljSLUstkXMQ8hneywTwTJZgayAYYq4Jb_SbYSWCozmFjQc9Ybk9ORupy",
         "notification": {
           "title" : userName.toString(),
-          "body" : sendMessageController.text
+          "body" : sendMessageController.text,
         },
         "data":{
-          "type" : "Chat_Message"
+          "type" : "New_Chat_Message",
+          "chat_id": chatId,
+          "user_id": userId,
+          "to_id": toId,
+          "user_name": userName
         }
       };
 
@@ -204,10 +210,14 @@ class _ChatScreenState extends State<ChatScreen> {
         "to": "emjGwMFtTV-ZYPi0A_E56U:APA91bFv3O6Ue7mepXOAueJyRf8GKSBZmA235fhhkxkkLaDpit6XJNTk8FuQcUjp4tZKZ9B1i8YS20rBehfmGwsIraDO9BMefExx-4ThZoJcj79HBX1IPZtyk3iOelt4zOUyC-XqpXjm",
         "notification": {
           "title" : userName.toString(),
-          "body" : sendMessageController.text
+          "body" : sendMessageController.text,
         },
         "data":{
-          "type" : "Chat_Message"
+          "type" : "New_Chat_Message",
+          "chat_id": chatId,
+          "user_id": userId,
+          "to_id": toId,
+          "user_name": userName
         }
       };
 
@@ -219,5 +229,14 @@ class _ChatScreenState extends State<ChatScreen> {
       http.post(Uri.parse(kPushNotificationUrl), body: jsonEncode(data), headers: headers);
 
     }
+  }
+
+  Future<void> getOtherUserInfo() async {
+    FirebaseFirestore.instance.collection("users").where("user_id", isEqualTo: toId).snapshots().listen((querySnapshot) {
+      onlineStatus.value = querySnapshot.docs.single["online"];
+      debugPrint("user id is: $userId");
+      debugPrint("online status is: ${onlineStatus.value}");
+   });
+
   }
 }

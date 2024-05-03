@@ -9,6 +9,9 @@ import 'package:firebase_setup/splash_screen_page.dart';
 import 'package:flutter/material.dart';
 
 import 'chat_page.dart';
+
+ValueNotifier<bool> onlineStatus = ValueNotifier(false);
+
 Future<void> main() async{
   await mainCommon();
 }
