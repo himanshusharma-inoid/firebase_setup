@@ -42,13 +42,25 @@ class AppUtils {
         children: [
           (text!= null) ? Text(text) : const SizedBox(),
           if(fromChatPage == true)
+            ValueListenableBuilder(
+                valueListenable: typingStatus,
+                builder: (BuildContext context, value, widget){
+                  return Text((typingStatus.value == true) ? "typing" : "", style: const TextStyle(fontSize: 12));
+                }),
+        ],
+      ),
+      actions: [
+        if(fromChatPage == true)
           ValueListenableBuilder(
               valueListenable: onlineStatus,
               builder: (BuildContext context, value, widget){
-                return Text((onlineStatus.value == true) ? "online" : "offline", style: const TextStyle(fontSize: 12));
-              })
-        ],
-      ),
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: Text((onlineStatus.value == true) ? "online" : "offline", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                );
+              }),
+
+      ],
       centerTitle: true,
       backgroundColor: Colors.tealAccent,titleTextStyle:const TextStyle(color: Colors.deepPurple,fontSize: 30),);
 

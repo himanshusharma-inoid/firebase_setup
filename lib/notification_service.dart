@@ -108,16 +108,16 @@ void initLocalNotifications(BuildContext context){
     });
 
     /// showing notifications in foreground
-    FirebaseMessaging.onMessage.listen((message) {
-      debugPrint("received foreground message");
-      debugPrint("foreground payload is: ${message.data}");
-      debugPrint("title is: ${message.notification?.title}");
-      debugPrint("body is: ${message.notification?.body}");
+      FirebaseMessaging.onMessage.listen((message) {
+        debugPrint("received foreground message");
+        debugPrint("foreground payload is: ${message.data}");
+        debugPrint("title is: ${message.notification?.title}");
+        debugPrint("body is: ${message.notification?.body}");
 
-      // initLocalNotifications(context, message);
-      showNotifications(message);
+        // initLocalNotifications(context, message);
+        showNotifications(message);
 
-    });
+      });
 
     /// showing notifications on background
     FirebaseMessaging.onMessageOpenedApp.listen((message) {

@@ -32,7 +32,8 @@ static Future addUserData({required String uid, required String email, required 
     userName: userName,
     uid: uid,
     imageUrl: url,
-    online: true
+    online: true,
+    typing: false
   );
 
   await FirebaseFirestore.instance.collection("users").doc(uid).set(userModel.toMap());

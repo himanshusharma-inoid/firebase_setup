@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'chat_page.dart';
 
 ValueNotifier<bool> onlineStatus = ValueNotifier(false);
+ValueNotifier<bool> typingStatus = ValueNotifier(false);
 
 Future<void> main() async{
   await mainCommon();

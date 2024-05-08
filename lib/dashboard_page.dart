@@ -38,6 +38,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver{
   @override
   void initState() {
     WidgetsBinding.instance.addObserver(this);
+    updateOnlineStatus(true);
     getUserInformations();
     super.initState();
   }
@@ -125,9 +126,16 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver{
                 searchUserList.clear();
                 if (value.isNotEmpty) {
                   for (var userDetail in chatList) {
-                    if (userDetail["email"].contains(value)) {
-                      searchUserList.add(userDetail);
-                      debugPrint("search user details is: ${searchUserList.length}");
+                    if (userId == userDetail["userInfo"]['user_id']) {
+                      if (userDetail["otherUserInfo"]["user_name"].contains(value)) {
+                        searchUserList.add(userDetail);
+                        debugPrint("search user details is: ${searchUserList.length}");
+                      }
+                    }else{
+                      if (userDetail["userInfo"]["user_name"].contains(value)) {
+                        searchUserList.add(userDetail);
+                        debugPrint("search user details is: ${searchUserList.length}");
+                      }
                     }
                   }
                   setState(() {
@@ -237,8 +245,8 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver{
                           if(querySnapshot.docs.isNotEmpty){
                             debugPrint("chat is already created");
                             String chatId = querySnapshot.docs.single['chat_id'];
-                            String onlineStatus = querySnapshot.docs.single['online'];
-                            Navigator.pushNamed(context, "/chat_page", arguments: {"chat_id": chatId, "user_id": userId, "to_id": snapshot.data!.docs[index]["user_id"], "user_name": userName.toString(), "image_url": userList[index]["image_url"]});
+                            String otherUserName = querySnapshot.docs.single['user_name'];
+                            Navigator.pushNamed(context, "/chat_page", arguments: {"chat_id": chatId, "user_id": userId, "to_id": snapshot.data!.docs[index]["user_id"], "user_name": userName.toString(), "image_url": userList[index]["image_url"], "other_user_name": otherUserName});
                           }else{
                             debugPrint("new chat created");
                             var uuid = const Uuid();
@@ -268,7 +276,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver{
 
                             FirebaseFirestore.instance.collection("chats").doc(chatId).set(chatModel.toMap());
 
-                            Navigator.pushNamed(context, "/chat_page", arguments: {"chat_id": chatId, "user_id": userId, "to_id": snapshot.data!.docs[index]["user_id"], "user_name": userName.toString(), "image_url": userList[index]["image_url"]});
+                            Navigator.pushNamed(context, "/chat_page", arguments: {"chat_id": chatId, "user_id": userId, "to_id": snapshot.data!.docs[index]["user_id"], "user_name": userName.toString(), "image_url": userList[index]["image_url"], "other_user_name": userList[index]["user_name"]});
                           }
                         });
 
@@ -329,7 +337,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver{
                             toId = chatList[index]["userInfo"]['user_id'];
                             imageUrl = chatList[index]["userInfo"]['image_url'];
                           }
-                          Navigator.pushNamed(context, "/chat_page", arguments: {"chat_id": chatId, "user_id": userId, "to_id": toId, "user_name": userName.toString(), "image_url": imageUrl});
+                          Navigator.pushNamed(context, "/chat_page", arguments: {"chat_id": chatId, "user_id": userId, "to_id": toId, "user_name": userName.toString(), "image_url": imageUrl, "other_user_name": userId == chatList[index]["userInfo"]['user_id'] ? chatList[index]["otherUserInfo"]['user_name'] : chatList[index]["userInfo"]['user_name']});
                           },
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -374,19 +382,24 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver{
               onTap: (){
 
               },
-              child: ListTile(
-                leading: ClipRRect(
-                  borderRadius: const BorderRadius.all(Radius.circular(30.0)),
-                  child: CachedNetworkImage(
-                    placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-                    errorWidget: (context, url, error) => const Icon(Icons.boy_outlined),
-                    imageUrl: searchUserList[index]["image_url"],
-                    height: 60,
-                    width: 60,
-                    fit: BoxFit.cover,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                child: ListTile(
+                  leading: ClipRRect(
+                    borderRadius: const BorderRadius.all(Radius.circular(30.0)),
+                    child: CachedNetworkImage(
+                      placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                      errorWidget: (context, url, error) => const Icon(Icons.boy_outlined),
+                      imageUrl: userId == searchUserList[index]["userInfo"]['user_id'] ? searchUserList[index]["otherUserInfo"]["image_url"] : searchUserList[index]["userInfo"]['image_url'],
+                      height: 60.0,
+                      width: 60.0,
+                      fit: BoxFit.cover,
+                    ),
                   ),
+                  title: Text(userId == searchUserList[index]["userInfo"]['user_id'] ? searchUserList[index]["otherUserInfo"]['user_name'] : searchUserList[index]["userInfo"]['user_name']),
+                  subtitle: searchUserList[index]["last_message"] != "" ?
+                  Text(searchUserList[index]["last_message"]) : const Text("sent hii to this user..", style: TextStyle(color: Colors.tealAccent)),
                 ),
-                title: Text(searchUserList[index]["email"]),
               ),
             );
           },

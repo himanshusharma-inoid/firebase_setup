@@ -24,7 +24,7 @@ class _SplashScreenPageState extends State<SplashScreenPage> {
       fcmToken = generatedToken ?? "";
       SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
       sharedPreferences.setString("FCM_TOKEN", fcmToken ?? "");
-    }
+     }
     );
 
     ///initialize local notification for showing notifications in foreground
